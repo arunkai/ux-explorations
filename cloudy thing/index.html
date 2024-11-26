@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
+    
+  <title>Cloud Fade In Demo</title>
+    <style>
+        .card-container {
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        max-width: 1287px;
+        margin: 20px auto;
+        overflow: hidden; /* Hide overflow during transition */
+        }
+
+        .canvas-wrapper {
+        height: 0;
+        opacity: 0;
+        transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                    opacity 0.3s ease-out;
+        margin: 20px 0;
+        }
+
+        .canvas-wrapper.expanded {
+        height: 180px; /* Match your canvas height */
+        opacity: 1;
+        }
+
+        canvas {
+        transform: translateY(20px);
+        opacity: 0;
+        transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1),
+                    opacity 1s ease-out;
+        }
+
+        canvas.visible {
+        transform: translateY(0);
+        opacity: 1;
+        }
+
+
+        .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        }
+
+        .flight-info {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        }
+
+        .city-code {
+        font-family: 'Instrument Serif', serif;
+        font-size: 64px;
+        font-weight: 400;
+        }
+
+        .time {
+        font-family: 'Instrument Sans', sans-serif;
+        font-size: 16px;
+        color: #666;
+        }
+
+        .price {
+            font-family: 'Instrument Serif', serif;
+            font-size: 28px;
+            position: relative;
+        }
+
+        .price-old,
+        .price-new {
+            position: absolute;
+            right: 0;
+            transition: all 2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .price-old.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        .price-new {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .price-new.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+
+        .button-container {
+        display: flex;
+        gap: 16px;
+        margin-top: 20px;
+        width: 100%;
+        position: relative; /* Add this */
+        z-index: 2; /* Add this */
+        }
+
+        .btn {
+        font-family: 'Instrument Sans', sans-serif;
+        font-weight: 500;
+        padding: 16px 24px;
+        border-radius: 100px; /* Fully rounded */
+        cursor: pointer;
+        font-size: 16px;
+        flex: 1; /* Make buttons grow equally */
+        width: 100%; /* Added full width */
+        min-width: 0; /* Prevents button from overflowing */
+        display: flex; /* Added for better text centering */
+        justify-content: center; /* Center text horizontally */
+        align-items: center; /* Center text vertically */
+        white-space: nowrap; /* Prevent text wrapping */
+        position: relative; /* Add this */
+        z-index: 2; /* Add this */
+        }
+
+        .btn-outline {
+            border: 2px solid #0066FF;
+            background: transparent;
+            color: #0066FF;
+            transition: flex-grow 1s cubic-bezier(0.22, 1, 0.36, 1);
+            flex: 1;
+        }
+
+        .btn-outline.hidden {
+            flex: 0;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            opacity: 0;
+            transform: translateY(-50px);
+            pointer-events: none;
+        }
+
+        .btn-filled {
+        border: 2px solid #000000;
+        background: #000000;
+        color: white;
+
+        transition: flex-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        flex: 1;
+        }
+        
+        .button-container.hidden {
+            gap: 0
+        }
+
+        .btn-filled.full-width {
+            flex-grow: 1;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #fff;
+        }
+
+        canvas {
+            width: 499px;
+            height: 160px;
+            max-width: 100%;
+            object-fit: contain;
+            background: white;
+            border: 1px solid #f4f4f4;
+            border-radius: 32px;
+            box-shadow: inset 0 0 20px rgba(50, 50, 50, 0.057);
+            position: relative; /* Add this */
+            z-index: 1; /* Add this */        }
+
+        .btn-outline:hover {
+            border: 2px solid #3f8cff;
+            background: transparent;
+            color: #3f8cff;        
+        }
+
+        .btn-filled:hover {
+            border: 2px solid #000;
+            color: #0066ff;        
+        }
+
+    </style>
+    
+</head>
+<body>
+    <div class="card-container">
+        <div class="header">
+          <div class="flight-info">
+            <span class="city-code">DEL</span>
+            <span class="city-code">NYC</span>
+            <span class="time">19h 10m</span>
+          </div>
+          <div class="price">
+            <div class="price-old"><span>₹</span>47,098</div>
+            <div class="price-new"><span>₹</span>35,999</div>
+        </div>
+        
+        </div>
+    
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="1287" height="410"></canvas>
+        </div>
+            
+        <div class="button-container">
+          <button class="btn btn-outline" onclick="expandCanvas()">Check offers</button>
+          <button class="btn btn-filled">Checkout and pay</button>
+        </div>
+      </div>
+
+    <script>
+        const vertexShader = `
+            attribute vec2 position;
+            varying vec2 uv;
+            void main() {
+                // Flip the y coordinate by subtracting from 1
+                uv = vec2(position.x * 0.5 + 0.5, 1.0 - (position.y * 0.5 + 0.5));
+                gl_Position = vec4(position, 0.0, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            precision highp float;
+            uniform sampler2D image;
+            uniform float progress;
+            uniform float cloudiness;
+            uniform float noiseScale;
+            uniform float softness;
+            varying vec2 uv;
+
+            float random(vec2 st) {
+                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+            }
+
+            float noise(vec2 st) {
+                vec2 i = floor(st);
+                vec2 f = fract(st);
+
+                float a = random(i);
+                float b = random(i + vec2(1.0, 0.0));
+                float c = random(i + vec2(0.0, 1.0));
+                float d = random(i + vec2(1.0, 1.0));
+
+                vec2 u = f * f * (3.0 - 2.0 * f);
+
+                return mix(a, b, u.x) +
+                        (c - a)* u.y * (1.0 - u.x) +
+                        (d - b) * u.x * u.y;
+            }
+
+            float fbm(vec2 st) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                
+                for(int i = 0; i < 5; i++) {
+                    value += amplitude * noise(st * frequency);
+                    frequency *= 2.0;
+                    amplitude *= 0.5;
+                }
+                return value;
+            }
+
+            void main() {
+                vec4 imageColor = texture2D(image, uv);
+                vec2 center = vec2(0.5, 0.5);
+                float dist = length(uv - center);
+                
+                float noiseValue = fbm(uv * noiseScale + progress * 2.0);
+                
+                float cloudMask = smoothstep(
+                    0.0,
+                    1.0 + softness,
+                    noiseValue - dist + progress * cloudiness
+                );
+                
+                cloudMask *= (1.0 + 0.2 * fbm(uv * 8.0 + progress));
+                cloudMask = smoothstep(0.0, 1.0, cloudMask);
+                
+                cloudMask *= progress;
+                
+                gl_FragColor = vec4(imageColor.rgb, cloudMask * imageColor.a);
+            }
+        `;
+
+        let gl, program, progressLocation;
+        let currentProgress = 0;
+        let animationId;
+        let isTransitioning = false;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        function createTexture(img) {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    
+    // Enable mipmapping and set better scaling quality
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    
+    // Generate mipmaps
+    gl.generateMipmap(gl.TEXTURE_2D);
+    
+    return texture;
+}
+
+        function setupWebGL() {
+            const canvas = document.getElementById('canvas');
+            // Get device pixel ratio
+    const dpr = window.devicePixelRatio || 1;
+
+    // Set canvas size in pixels
+    const displayWidth = canvas.clientWidth * dpr;
+    const displayHeight = canvas.clientHeight * dpr;
+
+    // Set canvas drawing buffer size
+    if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+    }
+
+    gl = canvas.getContext('webgl', { 
+        premultipliedAlpha: false,
+        antialias: true // Enable antialiasing
+    });
+
+    // Set viewport to match canvas size
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+            gl = canvas.getContext('webgl', { premultipliedAlpha: false });
+            
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            
+            const vertShader = createShader(gl, gl.VERTEX_SHADER, vertexShader);
+            const fragShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
+            
+            program = gl.createProgram();
+            gl.attachShader(program, vertShader);
+            gl.attachShader(program, fragShader);
+            gl.linkProgram(program);
+            
+            const positions = new Float32Array([
+                -1, -1,
+                1, -1,
+                -1, 1,
+                1, 1
+            ]);
+            
+            const buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+            
+            const positionLocation = gl.getAttribLocation(program, 'position');
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+            
+            progressLocation = gl.getUniformLocation(program, 'progress');
+            
+            gl.useProgram(program);
+            gl.uniform1f(gl.getUniformLocation(program, 'cloudiness'), 1.5);
+            gl.uniform1f(gl.getUniformLocation(program, 'noiseScale'), 4.0);
+            gl.uniform1f(gl.getUniformLocation(program, 'softness'), 0.3);
+        }
+
+        function loadImage(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.src = url;
+            });
+        }
+
+        function createTexture(img) {
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            return texture;
+        }
+
+        async function init() {
+            setupWebGL();
+            
+            // Load your local image
+            const img = await loadImage('./offer card.png');
+            const texture = createTexture(img);
+            
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.uniform1i(gl.getUniformLocation(program, 'image'), 0);
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            render();
+        }
+
+        function render() {
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.uniform1f(progressLocation, currentProgress);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            
+            if (isTransitioning) {
+                currentProgress += 0.007;
+                if (currentProgress >= 1) {
+                    currentProgress = 1;
+                    isTransitioning = false;
+                    cancelAnimationFrame(animationId);
+                } else {
+                    animationId = requestAnimationFrame(render);
+                }
+            }
+        }
+
+
+        function expandCanvas() {
+            const wrapper = document.querySelector('.canvas-wrapper');
+            const canvas = document.querySelector('canvas');
+            const priceElement = document.querySelector('.price');
+            const oldPrice = document.querySelector('.price-old');
+            const newPrice = document.querySelector('.price-new');
+            const checkOffersBtn = document.querySelector('.btn-outline');
+            const checkoutBtn = document.querySelector('.btn-filled');
+            const BtnContainer = document.querySelector('.button-container');
+            
+            // Hide "Check offers" button
+            checkOffersBtn.classList.add('hidden');
+            BtnContainer.classList.add('hidden');
+            
+            // Optional: make checkout button take full width
+            checkoutBtn.classList.add('full-width');
+            
+                // Animate price change
+            oldPrice.classList.add('hidden');
+            newPrice.classList.add('visible');
+            
+            // Expand canvas
+            wrapper.classList.add('expanded');
+            
+            setTimeout(() => {
+                canvas.classList.add('visible');
+                startTransition();
+            }, 300);
+        }
+
+        
+        function startTransition() {
+            if (!isTransitioning) {
+                currentProgress = 0;
+                isTransitioning = true;
+                render();
+            }
+        }
+
+
+        init();
+    </script>
+</body>
+</html>
