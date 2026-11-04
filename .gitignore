@@ -1,0 +1,13 @@
+# Secrets, keys and local Cloudflare state (security audit 2026-11)
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+*.pem
+*.p8
+*.p12
+*.key
+google-services.json
+.wrangler/
+!.env.example
+!.dev.vars.example
